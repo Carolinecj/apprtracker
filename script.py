@@ -16,14 +16,15 @@ openai.api_key = os.getenv('OPENAI_API_KEY2')
 # Load credentials from GitHub Secret
 credentials_json = os.getenv("GS_CREDENTIALS")
 
+# Authenticate with Google Sheets API
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"] 
+
 if credentials_json:
     credentials_dict = json.loads(credentials_json)
     creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
 else:
     raise ValueError("Google Sheets credentials not found")
 
-# Authenticate with Google Sheets API
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"] 
 
 client = gspread.authorize(creds)
 
