@@ -77,7 +77,7 @@ recent_approvals = []
 for entry in feed.entries:
     approval_date = datetime.datetime.strptime(entry.published, "%a, %d %b %Y %H:%M:%S %z")
     #    if approval_date.replace(tzinfo=datetime.UTC) >= last_month:
-    if approval_date.replace(tzinfo=datetime.UTC) >= yesterday:
+    if approval_date.replace(tzinfo=datetime.timezone.utc) >= yesterday:
         structured_data = extract_info_with_chatgpt(entry.title, entry.summary)
         data_dict = extract_info_from_text(structured_data)
         
