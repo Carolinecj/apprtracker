@@ -64,7 +64,8 @@ def extract_info_with_chatgpt(title, description):
     return response.choices[0].message.content
 
 # Get today's date and the date 30 days ago
-today = datetime.datetime.now(datetime.UTC)
+today = datetime.datetime.now(datetime.timezone.utc)
+
 #last_month = today - datetime.timedelta(days=30)
 yesterday = today - datetime.timedelta(days=1)
 
