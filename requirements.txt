@@ -3,4 +3,4 @@ pandas
 feedparser
 openai
 gspread
-oauth2clien
+oauth2client
