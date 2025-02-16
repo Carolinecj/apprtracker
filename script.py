@@ -66,8 +66,8 @@ def extract_info_with_chatgpt(title, description):
 # Get today's date and the date 30 days ago
 today = datetime.datetime.now(datetime.timezone.utc)
 
-last_month = today - datetime.timedelta(days=30)
-#yesterday = today - datetime.timedelta(days=1)
+#last_month = today - datetime.timedelta(days=30)
+yesterday = today - datetime.timedelta(days=1)
 
 # --- GET FDA APPROVALS FROM DRUGS.COM ---
 feed = feedparser.parse(rss_url)
@@ -76,8 +76,8 @@ feed = feedparser.parse(rss_url)
 recent_approvals = []
 for entry in feed.entries:
     approval_date = datetime.datetime.strptime(entry.published, "%a, %d %b %Y %H:%M:%S %z")
-    if approval_date.replace(tzinfo=datetime.timezone.utc) >= last_month:
-    #if approval_date.replace(tzinfo=datetime.timezone.utc) >= yesterday:
+    #if approval_date.replace(tzinfo=datetime.timezone.utc) >= last_month:
+    if approval_date.replace(tzinfo=datetime.timezone.utc) >= yesterday:
         structured_data = extract_info_with_chatgpt(entry.title, entry.summary)
         data_dict = extract_info_from_text(structured_data)
         
