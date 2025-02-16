@@ -1,0 +1,29 @@
+name: Approval tracker
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Runs every day at 8 PM South African Time (UTC +2)
+  workflow_dispatch:  # This allows you to manually trigger the workflow from the GitHub UI
+
+jobs:
+  run_script:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2  # This checks out your code so it can run the script
+    
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'  # Use Python 3.8 (or change to your preferred version)
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt  # Install the required libraries
+    
+    - name: Run the script
+      env:
+        OPENAI_API_KEY2: ${{ secrets.OPENAI_API_KEY2 }}  
+        GS_CREDENTIALS: ${{ secrets.GS_CREDENTIALS }}  
+      run: |
+        python script.py  # Run your Python script
