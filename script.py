@@ -97,11 +97,22 @@ def extract_info_with_chatgpt(title, description):
     
     return response.choices[0].message.content  # Correct indentation
 
+# Define a mapping for common time zone abbreviations
+tzinfos = {
+    "EST": gettz("America/New_York"),
+    "PST": gettz("America/Los_Angeles"),
+    "CST": gettz("America/Chicago"),
+    "MST": gettz("America/Denver"),
+    "EDT": gettz("America/New_York"),
+    "PDT": gettz("America/Los_Angeles"),
+    "CDT": gettz("America/Chicago"),
+    "MDT": gettz("America/Denver"),
+}
 
 def parse_approval_date(date_str):
     try:
         # Use dateutil.parser to handle both time zone abbreviations and offsets
-        return parser.parse(date_str)
+        return parser.parse(date_str,tzinfos=tzinfos)
     except Exception as e:
         print(f"Error parsing date: {date_str}, {e}")
         return None
