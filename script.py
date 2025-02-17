@@ -95,7 +95,7 @@ def extract_info_with_chatgpt(title, description):
 
 # Get today's date and the date 30 days ago
 today = datetime.datetime.now(datetime.timezone.utc)
-week_ago = today - datetime.timedelta(days=30)
+week_ago = today - datetime.timedelta(days=7)
 
 #last_month = today - datetime.timedelta(days=30)
 #yesterday = today - datetime.timedelta(days=1)
