@@ -156,7 +156,7 @@ def process_rss_feed(rss_url, existing_identifiers):
             data_dict = extract_info_from_text(structured_data)
             
             # If drug name or pharmaceutical company is "N/A", skip saving this entry
-            drug_name = data_dict.get("Drug Name", "N/A")
+            drug_name = data_dict.get("Drug Name") or data_dict.get("Vaccine Name") or "N/A")
             pharmaceutical_company = data_dict.get("Pharmaceutical Company", "N/A")
 
             if drug_name == "N/A":
