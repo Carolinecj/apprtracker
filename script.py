@@ -45,7 +45,7 @@ def extract_info_from_text(text):
 def extract_info_with_chatgpt(title, description):
     prompt = f"""
     Extract the following structured data from the text:
-    - Drug Name
+    - Drug or vaccine Name
     - Pharmaceutical Company
     - Publish Date
     - Indication
