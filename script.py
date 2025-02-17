@@ -106,7 +106,10 @@ for entry in feed.entries:
     #if approval_date.replace(tzinfo=datetime.timezone.utc) >= last_month:
     if approval_date.replace(tzinfo=datetime.timezone.utc) >= week_ago:
         structured_data = extract_info_with_chatgpt(entry.title, entry.summary)
+        print("DEBUG: Raw structured data from ChatGPT:\n", structured_data)  # Debug print
         data_dict = extract_info_from_text(structured_data)
+        print("🛠DEBUG: Parsed data dictionary:\n", data_dict)  # Debug print
+
     if data_dict:
             #drug_name = data_dict.get("Drug Name", "Not Found")
             drug_name = data_dict.get("Drug Name") or data_dict.get("Vaccine Name") or "Not Found"
@@ -141,4 +144,4 @@ if new_entries:
     sheet.append_rows(new_entries)  # Append all data at once
     print(f"✅ Successfully written {len(new_entries)} entries to Google Sheets")
 else:
-    print("No new FDA approvals in the last day.")
+    print("No new FDA approvals in the last week.")
