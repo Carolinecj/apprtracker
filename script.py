@@ -44,37 +44,40 @@ def extract_info_from_text(text):
 
 def extract_info_with_chatgpt(title, description):
     prompt = f"""
-Extract the following structured data from the text below. If any field is missing or unclear, do your best to infer it. Return the response as structured JSON.
+    Extract the following structured data from the text below. If any field is missing or unclear, do your best to infer it. Return the response as structured JSON.
 
-**Fields to extract:**
-- "Drug Name": The name of the drug or vaccine (if applicable).
-- "Vaccine Name": The name of the vaccine (if applicable).
-- "Pharmaceutical Company": The company that developed or manufactures the drug/vaccine.
-- "Publish Date": The approval announcement date.
-- "Indication": The medical condition or purpose the drug/vaccine is approved for.
+    **Fields to extract:**
+    - "Drug Name": The name of the drug or vaccine (if applicable).
+    - "Vaccine Name": The name of the vaccine (if applicable).
+    - "Pharmaceutical Company": The company that developed or manufactures the drug/vaccine.
+    - "Publish Date": The approval announcement date.
+    - "Indication": The medical condition or purpose the drug/vaccine is approved for.
 
-**Text to analyze:**
-Title: {title}
-Description: {description}
+    **Text to analyze:**
+    Title: {title}
+    Description: {description}
 
-**Output format (JSON):**
-{{
-    "Drug Name": "ExampleDrug",
-    "Vaccine Name": "ExampleVaccine",
-    "Pharmaceutical Company": "Example Pharma Inc.",
-    "Publish Date": "YYYY-MM-DD",
-    "Indication": "Used to treat XYZ condition."
-}}
+    **Output format (JSON):**
+    {{
+        "Drug Name": "ExampleDrug",
+        "Vaccine Name": "ExampleVaccine",
+        "Pharmaceutical Company": "Example Pharma Inc.",
+        "Publish Date": "YYYY-MM-DD",
+        "Indication": "Used to treat XYZ condition."
+    }}
 
-Extract carefully and return **only** valid JSON.
-"""
-response = openai.chat.completions.create(
+    Extract carefully and return **only** valid JSON.
+    """
+    
+    response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "system", "content": "You are a helpful assistant that extracts structured information from text."},
-                  {"role": "user", "content": prompt}]
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts structured information from text."},
+            {"role": "user", "content": prompt}
+        ]
     )
     
-return response.choices[0].message.content
+    return response.choices[0].message.content  # Correct indentation
 
 # Get today's date and the date 30 days ago
 today = datetime.datetime.now(datetime.timezone.utc)
