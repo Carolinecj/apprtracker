@@ -117,19 +117,18 @@ new_entries = []
 #recent_approvals = []
 for entry in feed.entries:
     approval_date = datetime.datetime.strptime(entry.published, "%a, %d %b %Y %H:%M:%S %z")
-    #if approval_date.replace(tzinfo=datetime.timezone.utc) >= last_month:
+    
     if approval_date.replace(tzinfo=datetime.timezone.utc) >= week_ago:
         structured_data = extract_info_with_chatgpt(entry.title, entry.summary)
         print("DEBUG: Raw structured data from ChatGPT:\n", structured_data)  # Debug print
         data_dict = extract_info_from_text(structured_data)
         print("🛠DEBUG: Parsed data dictionary:\n", data_dict)  # Debug print
-
-    if data_dict:
-            #drug_name = data_dict.get("Drug Name", "Not Found")
+        
+        if data_dict:
             drug_name = data_dict.get("Drug Name") or data_dict.get("Vaccine Name") or "Not Found"
             approval_date_str = approval_date.strftime("%Y-%m-%d")
             unique_id = f"{drug_name}_{approval_date_str}"  # Unique identifier
-            
+
             # Avoid duplicates before adding
             if unique_id not in existing_identifiers:
                 new_entries.append([
@@ -142,16 +141,8 @@ for entry in feed.entries:
                     entry.link
                 ])
                 existing_identifiers.add(unique_id)
-      #  if data_dict:
-      #      recent_approvals.append([
-      #      entry.title,
-      #      approval_date.strftime("%Y-%m-%d"),
-      #       data_dict.get("Drug Name", "Not Found"),
-           #     data_dict.get("Pharmaceutical Company", "Not Found"),
-        #        data_dict.get("Indication", "Not Found"),
-         #       entry.summary,
-          #      entry.link
-            #])
+        else:
+            print("No structured data found for this entry.")
 
 # --- WRITE TO GOOGLE SHEETS ---
 if new_entries:
