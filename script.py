@@ -34,13 +34,27 @@ sheet = spreadsheet.sheet1  # Use the first sheet
 
 def extract_info_from_text(text):
     data = {}
-    for line in text.splitlines():
-        if line.strip().startswith('-'):
-            parts = line[1:].strip().split(": ", 1)
-            if len(parts) == 2:
-                key, value = parts
-                data[key.strip()] = value.strip()
-    return data
+    # Strip the text to remove unnecessary leading/trailing spaces
+    text = text.strip()
+
+    try:
+        # Parse the text as JSON, if possible
+        parsed_data = json.loads(text)
+        
+        # Ensure all expected keys are present, if missing, insert empty values or placeholders
+        expected_keys = ["Drug Name", "Vaccine Name", "Pharmaceutical Company", "Publish Date", "Indication"]
+        for key in expected_keys:
+            if key not in parsed_data:
+                parsed_data[key] = "Not Provided"  # Or another suitable default value
+
+        return parsed_data
+
+    except json.JSONDecodeError:
+        # In case parsing fails, return an empty dictionary and print a warning
+        print(f" WARNING: Failed to decode JSON: {text}")
+        return {}
+
+
 
 def extract_info_with_chatgpt(title, description):
     prompt = f"""
