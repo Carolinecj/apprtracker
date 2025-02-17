@@ -163,9 +163,14 @@ def process_rss_feed(rss_url, existing_identifiers):
         if approval_date.replace(tzinfo=datetime.timezone.utc) >= week_ago:
             # Send title and summary to ChatGPT for structured data extraction
             structured_data = extract_info_with_chatgpt(entry.title, entry.summary)
+            print("DEBUG: Raw structured data from ChatGPT:")
+            print(structured_data)
             
             # Parse the extracted data into a dictionary
             data_dict = extract_info_from_text(structured_data)
+
+            print("DEBUG: Parsed data dictionary:")
+            print(json.dumps(data_dict, indent=2))
             
             # If drug name or pharmaceutical company is "N/A", skip saving this entry
             drug_name = data_dict.get("Drug Name") or data_dict.get("Vaccine Name") or "N/A"
