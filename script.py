@@ -194,7 +194,7 @@ all_recent_approvals = []
 
 # Process each RSS feed
 for rss_url in rss_urls:
-    approvals = process_rss_feed(rss_url)
+    approvals = process_rss_feed(rss_url,existing_identifiers)
     all_recent_approvals.extend(approvals)
 
 # --- WRITE TO GOOGLE SHEETS ---
