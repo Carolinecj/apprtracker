@@ -8,9 +8,13 @@ import json
 from google.oauth2.service_account import Credentials
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from dateutil import parser
 
 # --- CONFIGURE YOUR SETTINGS ---
-rss_url = "https://www.drugs.com/feeds/new_drug_approvals.xml"
+rss_urls = [
+    "https://www.drugs.com/feeds/new_drug_approvals.xml",  # Drugs.com feed
+    "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/drugs/rss.xml"  # FDA feed
+]
 openai.api_key = os.getenv('OPENAI_API_KEY2')
 
 # Load credentials from GitHub Secret
@@ -61,8 +65,8 @@ def extract_info_with_chatgpt(title, description):
     Extract the following structured data from the text below. If any field is missing or unclear, do your best to infer it. Return the response as structured JSON.
 
     **Fields to extract:**
-    - "Drug Name": The name of the drug or vaccine (if applicable).
-    - "Vaccine Name": The name of the vaccine (if applicable).
+    - "Drug Name": The name of the drug or vaccine (if applicable). If not identified, return 'N/A' (no additional text or explanation)
+    - "Vaccine Name": The name of the vaccine (if applicable). If not identified, return 'N/A' (no additional text or explanation)
     - "Pharmaceutical Company": The company that developed or manufactures the drug/vaccine.
     - "Publish Date": The approval announcement date.
     - "Indication": The medical condition or purpose the drug/vaccine is approved for.
@@ -93,6 +97,14 @@ def extract_info_with_chatgpt(title, description):
     
     return response.choices[0].message.content  # Correct indentation
 
+
+def parse_approval_date(date_str):
+    try:
+        # Use dateutil.parser to handle both time zone abbreviations and offsets
+        return parser.parse(date_str)
+    except Exception as e:
+        print(f"Error parsing date: {date_str}, {e}")
+        return None
 # Get today's date and the date 30 days ago
 today = datetime.datetime.now(datetime.timezone.utc)
 week_ago = today - datetime.timedelta(days=7)
@@ -110,43 +122,84 @@ for row in existing_records[1:]:  # Skip header
         existing_identifiers.add(f"{row[2]}_{row[1]}")  # Drug Name + Approval Date
 
 # --- GET FDA APPROVALS FROM rss feeds ---
-feed = feedparser.parse(rss_url)
+def process_rss_feed(rss_url, existing_identifiers):
+    feed = feedparser.parse(rss_url)
+    recent_approvals = []
 
-new_entries = []
-# Filter approvals from the last 7 days
-#recent_approvals = []
-for entry in feed.entries:
-    approval_date = datetime.datetime.strptime(entry.published, "%a, %d %b %Y %H:%M:%S %z")
-    
-    if approval_date.replace(tzinfo=datetime.timezone.utc) >= week_ago:
-        structured_data = extract_info_with_chatgpt(entry.title, entry.summary)
-        print("DEBUG: Raw structured data from ChatGPT:\n", structured_data)  # Debug print
-        data_dict = extract_info_from_text(structured_data)
-        print("🛠DEBUG: Parsed data dictionary:\n", data_dict)  # Debug print
-        
-        if data_dict:
-            drug_name = data_dict.get("Drug Name") or data_dict.get("Vaccine Name") or "Not Found"
+    # List of relevant approval-related keywords
+    relevant_keywords = ['approval', 'approved', 'approves']
+    # List of denial-related keywords
+    denial_keywords = ['denied', 'not approved', 'not authorized', 'not eligible', 'rejected']
+
+    for entry in feed.entries:
+        # Skip articles with denial-related keywords in the title (case-insensitive)
+        if any(keyword in entry.title.lower() for keyword in denial_keywords):
+            continue  # Skip this article
+
+        # Check if any relevant approval keyword is in the title (case-insensitive)
+        if not any(keyword in entry.title.lower() for keyword in relevant_keywords):
+            continue  # Skip irrelevant articles
+
+        # Convert published date to datetime
+        try:
+            approval_date = parser.parse(entry.published)
+        except Exception as e:
+            print(f"Error parsing date: {entry.published}, error: {e}")
+            continue  # Skip this entry if date parsing fails
+
+        # Filter by approval date (last 30 days or any other time range as needed)
+        if approval_date.replace(tzinfo=datetime.timezone.utc) >= last_month:
+            # Send title and summary to ChatGPT for structured data extraction
+            structured_data = extract_info_with_chatgpt(entry.title, entry.summary)
+            
+            # Parse the extracted data into a dictionary
+            data_dict = extract_info_from_text(structured_data)
+            
+            # If drug name or pharmaceutical company is "N/A", skip saving this entry
+            drug_name = data_dict.get("Drug Name", "N/A")
+            pharmaceutical_company = data_dict.get("Pharmaceutical Company", "N/A")
+
+            if drug_name == "N/A":
+                continue  # Skip this article if relevant information is missing
+            
+            # Basic check for approval/denial (example keywords)
+            if 'approved' in entry.title.lower():
+                approval_status = 'Approved'
+            elif 'denied' in entry.title.lower():
+                approval_status = 'Denied'
+            else:
+                approval_status = 'Unclear'
+            
+            # Create a unique identifier based on drug name and approval date
             approval_date_str = approval_date.strftime("%Y-%m-%d")
-            unique_id = f"{drug_name}_{approval_date_str}"  # Unique identifier
+            unique_id = f"{drug_name}_{approval_date_str}"
 
-            # Avoid duplicates before adding
+            # Avoid duplicates before adding to recent_approvals
             if unique_id not in existing_identifiers:
-                new_entries.append([
-                    entry.title,
-                    approval_date_str,
-                    drug_name,
-                    data_dict.get("Pharmaceutical Company", "Not Found"),
-                    data_dict.get("Indication", "Not Found"),
-                    entry.summary,
-                    entry.link
-                ])
-                existing_identifiers.add(unique_id)
-        else:
-            print("No structured data found for this entry.")
+                recent_approvals.append({
+                    "Title": entry.title,
+                    "Approval Date": approval_date_str,
+                    "Drug Name": drug_name,
+                    "Pharmaceutical Company": pharmaceutical_company,
+                    "Indication": data_dict.get("Indication", "Not Found"),
+                    "Approval Status": approval_status,
+                    "Summary": entry.summary,
+                    "Link": entry.link
+                })
+                existing_identifiers.add(unique_id)  # Add unique_id to track duplicates
+
+    return recent_approvals
+
+all_recent_approvals = []
+
+# Process each RSS feed
+for rss_url in rss_urls:
+    approvals = process_rss_feed(rss_url)
+    all_recent_approvals.extend(approvals)
 
 # --- WRITE TO GOOGLE SHEETS ---
-if new_entries:
-    sheet.append_rows(new_entries)  # Append all data at once
-    print(f"✅ Successfully written {len(new_entries)} entries to Google Sheets")
+if all_recent_approvals:
+    sheet.append_rows([list(approval.values()) for approval in all_recent_approvals])  # Write to Google Sheets
+    print(f"✅ Successfully written {len(all_recent_approvals)} entries to Google Sheets")
 else:
-    print("No new FDA approvals in the last week.")
+    print("No new FDA approvals in the last month.")
