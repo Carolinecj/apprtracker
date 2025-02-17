@@ -148,7 +148,7 @@ def process_rss_feed(rss_url, existing_identifiers):
             continue  # Skip this entry if date parsing fails
 
         # Filter by approval date (last 30 days or any other time range as needed)
-        if approval_date.replace(tzinfo=datetime.timezone.utc) >= last_month:
+        if approval_date.replace(tzinfo=datetime.timezone.utc) >= week_ago:
             # Send title and summary to ChatGPT for structured data extraction
             structured_data = extract_info_with_chatgpt(entry.title, entry.summary)
             
