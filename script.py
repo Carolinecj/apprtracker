@@ -173,12 +173,21 @@ def process_rss_feed(rss_url, existing_identifiers):
             print(json.dumps(data_dict, indent=2))
             
             # If drug name or pharmaceutical company is "N/A", skip saving this entry
-            drug_name = data_dict.get("Drug Name") or data_dict.get("Vaccine Name") or "N/A"
+            drug_name = data_dict.get("Drug Name", "N/A")
+            vaccine_name = data_dict.get("Vaccine Name", "N/A")
+
+            # If Drug Name is "N/A" but Vaccine Name has a valid value, use Vaccine Name
+            if drug_name == "N/A" and vaccine_name != "N/A":
+                drug_name = vaccine_name
+
+            # Skip if both Drug Name and Vaccine Name are "N/A"
+            if drug_name == "N/A":
+                print(f"DEBUG: Skipping entry - Drug Name: {data_dict.get('Drug Name')}, Vaccine Name: {data_dict.get('Vaccine Name')}")
+                continue
+
             pharmaceutical_company = data_dict.get("Pharmaceutical Company", "N/A")
 
-            if drug_name == "N/A":
-                continue  # Skip this article if relevant information is missing
-            
+                       
             # Basic check for approval/denial (example keywords)
             if 'approved' in entry.title.lower():
                 approval_status = 'Approved'
