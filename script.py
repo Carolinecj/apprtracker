@@ -65,36 +65,63 @@ def extract_info_with_chatgpt(title, description):
 
 # Get today's date and the date 30 days ago
 today = datetime.datetime.now(datetime.timezone.utc)
+week_ago = today - datetime.timedelta(days=7)
 
 #last_month = today - datetime.timedelta(days=30)
-yesterday = today - datetime.timedelta(days=1)
+#yesterday = today - datetime.timedelta(days=1)
 
-# --- GET FDA APPROVALS FROM DRUGS.COM ---
+#Fetch existing entries from google sheets
+existing_records= sheet.get_all_values() # get all existing records
+existing_identifiers= set()
+
+# Assuming column structure: [Title, Approval Date, Drug Name, Company, Indication, Summary, Link]
+for row in existing_records[1:]:  # Skip header
+    if len(row) > 2:  # Ensure we have enough columns
+        existing_identifiers.add(f"{row[2]}_{row[1]}")  # Drug Name + Approval Date
+
+# --- GET FDA APPROVALS FROM rss feeds ---
 feed = feedparser.parse(rss_url)
 
-# Filter approvals from the last 30 days
-recent_approvals = []
+new_entries = []
+# Filter approvals from the last 7 days
+#recent_approvals = []
 for entry in feed.entries:
     approval_date = datetime.datetime.strptime(entry.published, "%a, %d %b %Y %H:%M:%S %z")
     #if approval_date.replace(tzinfo=datetime.timezone.utc) >= last_month:
-    if approval_date.replace(tzinfo=datetime.timezone.utc) >= yesterday:
+    if approval_date.replace(tzinfo=datetime.timezone.utc) >= week_ago:
         structured_data = extract_info_with_chatgpt(entry.title, entry.summary)
         data_dict = extract_info_from_text(structured_data)
-        
-        if data_dict:
-            recent_approvals.append([
-                entry.title,
-                approval_date.strftime("%Y-%m-%d"),
-                data_dict.get("Drug Name", "Not Found"),
-                data_dict.get("Pharmaceutical Company", "Not Found"),
-                data_dict.get("Indication", "Not Found"),
-                entry.summary,
-                entry.link
-            ])
+    if data_dict:
+            drug_name = data_dict.get("Drug Name", "Not Found")
+            approval_date_str = approval_date.strftime("%Y-%m-%d")
+            unique_id = f"{drug_name}_{approval_date_str}"  # Unique identifier
+            
+            # Avoid duplicates before adding
+            if unique_id not in existing_identifiers:
+                new_entries.append([
+                    entry.title,
+                    approval_date_str,
+                    drug_name,
+                    data_dict.get("Pharmaceutical Company", "Not Found"),
+                    data_dict.get("Indication", "Not Found"),
+                    entry.summary,
+                    entry.link
+                ])
+                existing_identifiers.add(unique_id)
+      #  if data_dict:
+      #      recent_approvals.append([
+      #      entry.title,
+      #      approval_date.strftime("%Y-%m-%d"),
+      #       data_dict.get("Drug Name", "Not Found"),
+           #     data_dict.get("Pharmaceutical Company", "Not Found"),
+        #        data_dict.get("Indication", "Not Found"),
+         #       entry.summary,
+          #      entry.link
+            #])
 
 # --- WRITE TO GOOGLE SHEETS ---
-if recent_approvals:
-    sheet.append_rows(recent_approvals)  # Append all data at once
-    print(f"✅ Successfully written {len(recent_approvals)} entries to Google Sheets")
+if new_entries:
+    sheet.append_rows(new_entries)  # Append all data at once
+    print(f"✅ Successfully written {len(new_entries)} entries to Google Sheets")
 else:
     print("No new FDA approvals in the last day.")
